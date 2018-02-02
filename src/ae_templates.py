@@ -11,8 +11,8 @@ from . encoders_decoders import encoder_with_convs_and_symmetry, decoder_with_fc
 def mlp_architecture_ala_iclr_18(n_pc_points, bneck_size, bneck_post_mlp=False):
     ''' Single class experiments.
     '''
-    if n_pc_points != 2048:
-        raise ValueError()
+ 
+    print('number of points sampled per object: %s' % n_pc_points)
 
     encoder = encoder_with_convs_and_symmetry
     decoder = decoder_with_fc_only
@@ -25,12 +25,24 @@ def mlp_architecture_ala_iclr_18(n_pc_points, bneck_size, bneck_post_mlp=False):
                     'b_norm': True,
                     'verbose': True
                     }
-
     decoder_args = {'layer_sizes': [256, 256, np.prod(n_input)],
                     'b_norm': False,
                     'b_norm_finish': False,
                     'verbose': True
                     }
+
+    # encoder_args = {'n_filters': [128, 512, 512, 512, 512, 512, bneck_size],
+    #                 'filter_sizes': [1],
+    #                 'strides': [1],
+    #                 'b_norm': True,
+    #                 'verbose': True
+    #                 }
+
+    # decoder_args = {'layer_sizes': [512, 512, 512, 512, np.prod(n_input)],
+    #                 'b_norm': False,
+    #                 'b_norm_finish': False,
+    #                 'verbose': True
+    #                 }
 
     if bneck_post_mlp:
         encoder_args['n_filters'].pop()

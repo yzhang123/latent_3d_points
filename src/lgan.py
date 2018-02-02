@@ -52,12 +52,16 @@ def generate_noise(var):
     
     
 if __name__=='__main__':
-    data_file = '../data/plane_hidden.npy'
-    num_epochs=300
+    import sys
+    
+    data_file = sys.argv[1] #'../data/plane_hidden.npy'
+    save_dir = sys.argv[2] #'../data/lgan_plane'
+
+
+    num_epochs=1000
     batch_size=50
     x_dim=128
     z_dim=128
-    save_dir = '../data/lgan_plane'
     
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -74,9 +78,10 @@ if __name__=='__main__':
     criterionD = nn.BCEWithLogitsLoss().cuda()
     criterionG = nn.BCEWithLogitsLoss().cuda()
     
-    real = Variable(torch.FloatTensor(batch_size, x_dim)).cuda()
-    noise = Variable(torch.FloatTensor(batch_size, z_dim)).cuda()
-    label = Variable(torch.FloatTensor(batch_size, 1)).cuda()
+    real = Variable(torch.FloatTensor(batch_size, x_dim), requires_grad=False).cuda()
+    noise = Variable(torch.FloatTensor(batch_size, z_dim), requires_grad=False).cuda()
+    label_zero = Variable(torch.FloatTensor(batch_size, 1).fill_(0), requires_grad=False).cuda()
+    label_one = Variable(torch.FloatTensor(batch_size, 1).fill_(1), requires_grad=False).cuda()
     
         
     for epoch in xrange(num_epochs):
@@ -90,19 +95,17 @@ if __name__=='__main__':
                 x = torch.from_numpy(batch)
                 real.data.copy_(x)
                 logit_real = d(real)
-                label.data.fill_(1)
-                loss_real = criterionD(logit_real, label)
-                loss_real.backward()
+                loss_real = criterionD(logit_real, label_one)
+                #loss_real.backward()
 
                 generate_noise(noise)
                 x_fake = g(noise)
                 logit_fake = d(x_fake.detach())
-                label.data.fill_(0)
-                loss_fake = criterionD(logit_fake, label)
-                loss_fake.backward()
+                loss_fake = criterionD(logit_fake, label_zero)
+                #loss_fake.backward()
 
                 loss = loss_real + loss_fake
-
+                loss.backward()
                 optimD.step()
 
             
@@ -111,8 +114,7 @@ if __name__=='__main__':
             generate_noise(noise)
             x_fake = g(noise)
             logit_fake = d(x_fake)
-            label.data.fill_(1)
-            loss_fake = criterionG(logit_fake, label)
+            loss_fake = criterionG(logit_fake, label_one)
             loss_fake.backward()
             optimG.step()
             

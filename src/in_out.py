@@ -6,6 +6,7 @@ import os.path as osp
 import re
 from six.moves import cPickle
 from multiprocessing import Pool
+import pdb
 
 from . general_utils import rand_rotation_matrix
 from .. external.python_plyfile.plyfile import PlyElement, PlyData
@@ -134,6 +135,7 @@ def load_point_clouds_from_filenames(file_names, n_threads, loader, verbose=Fals
 
     if verbose:
         print('{0} pclouds were loaded. They belong in {1} shape-classes.'.format(len(pclouds), len(np.unique(class_ids))))
+
 
     return pclouds, model_names, class_ids
 

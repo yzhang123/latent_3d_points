@@ -18,6 +18,8 @@ from . general_utils import apply_augmentations
 #try:    
 from .. external.structural_losses.tf_nndistance import nn_distance
 from .. external.structural_losses.tf_approxmatch import approx_match, match_cost
+import pdb
+import numpy as np
 #except:
 #    print('External Losses (Chamfer-EMD) cannot be loaded. Please install them first.')
     
@@ -34,6 +36,11 @@ class PointNetAutoEncoder(AutoEncoder):
         AutoEncoder.__init__(self, name, graph, configuration)
 
         with tf.variable_scope(name):
+
+            import pdb
+            # pdb.set_trace()
+
+
             self.z = c.encoder(self.x, **c.encoder_args)
             self.bottleneck_size = int(self.z.get_shape()[1])
             layer = c.decoder(self.z, **c.decoder_args)
@@ -48,12 +55,15 @@ class PointNetAutoEncoder(AutoEncoder):
             self._create_loss()
             self._setup_optimizer()
 
+
+            # pdb.set_trace()
             # GPU configuration
             if hasattr(c, 'allow_gpu_growth'):
                 growth = c.allow_gpu_growth
             else:
                 growth = True
 
+            # pdb.set_trace()
             config = tf.ConfigProto()
             config.gpu_options.allow_growth = growth
 
@@ -118,7 +128,11 @@ class PointNetAutoEncoder(AutoEncoder):
                 if batch_i is None:  # In this case the denoising concern only the augmentation.
                     batch_i = original_data
             else:
-                batch_i, _, _ = train_data.next_batch(batch_size)
+                batch_i, _, _ = train_data.next_batch(batch_size) # bs x 2048 x 3
+                num_points_to_pick = configuration.n_input[0]
+                perm = np.random.permutation(num_points_to_pick)
+                batch_i = np.take(batch_i, perm[0:num_points_to_pick], axis=1)
+                # pdb.set_trace()
 
             batch_i = apply_augmentations(batch_i, configuration)   # This is a new copy of the batch.
 

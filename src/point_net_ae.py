@@ -129,10 +129,6 @@ class PointNetAutoEncoder(AutoEncoder):
                     batch_i = original_data
             else:
                 batch_i, _, _ = train_data.next_batch(batch_size) # bs x 2048 x 3
-                num_points_to_pick = configuration.n_input[0]
-                perm = np.random.permutation(num_points_to_pick)
-                batch_i = np.take(batch_i, perm[0:num_points_to_pick], axis=1)
-                # pdb.set_trace()
 
             batch_i = apply_augmentations(batch_i, configuration)   # This is a new copy of the batch.
 

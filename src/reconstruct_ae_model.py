@@ -18,7 +18,10 @@ import sys, os
 import pdb
 
 model = sys.argv[1] # mode namel, e.g. path single_class_ae_plane_chamfer_zrotate
-save_file_path = sys.argv[2]  # save hidden.npy
+model_epoch = int(sys.argv[2])
+save_dir = sys.argv[3]  # save reconstrcuted csv
+n_pc_points = int(sys.argv[4])
+
 
 
 top_out_dir = '../data/'                        # Use to write Neural-Net check-points etc.
@@ -26,8 +29,7 @@ top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where p
 
 
 model_dir = osp.join(top_out_dir, model)
-experiment_name = model #'single_class_ae_plane_chamfer_zrotate'
-n_pc_points = 600                              # Number of points per model.
+experiment_name = model #'single_class_ae_plane_chamfer_zrotate'                             # Number of points per model.
 bneck_size = 128                                # Bottleneck-AE size
 ae_loss = 'chamfer'                             # Loss to optimize: 'emd' or 'chamfer'
 class_name = "airplane"
@@ -62,22 +64,25 @@ conf.held_out_step = 5              # How often to evaluate/print out loss on he
 # pdb.set_trace()
 reset_tf_graph()
 ae = PointNetAutoEncoder(conf.experiment_name, conf)
+ae.restore_model(model_dir, model_epoch)
 
+if not os.path.exists(save_dir):
+      os.makedirs(save_dir)
 
-n_examples = all_pc_data.num_examples
-batch_size = conf.batch_size
-n_batches = int(n_examples / batch_size)
-latent_list=list()
-for _ in xrange(n_batches):
-    feed_pc, feed_model_names, _ = all_pc_data.next_batch(batch_size)
+file_idx = 0
+for _ in xrange(1):
+    feed_pc, feed_model_names, _ = all_pc_data.next_batch(100)
     num_points_to_pick = n_pc_points
-    perm = np.random.permutation(num_points_to_pick)
-    feed_pc = np.take(feed_pc, perm[0:num_points_to_pick], axis=1)
-    latent_codes = ae.transform(feed_pc)
-    latent_list.append(latent_codes)
-    
-latent = np.concatenate(latent_list, axis=0)
-ae.restore_model(model_dir, 250)
+    # perm = np.random.permutation(num_points_to_pick)
+    # pdb.set_trace()
+    feed_pc = np.take(feed_pc, np.arange(num_points_to_pick), axis=1)
+    fake_pc, _ = ae.reconstruct(feed_pc)
+    for i, x in enumerate(fake_pc):
+        # path = os.path.join(save_dir, '{0}.csv'.format(i))
+        # np.savetxt(os.path.join(save_dir, "0_{0}".format(add[i])), x, delimiter=",")
 
-np.save(save_file_path, latent)
+        np.savetxt(os.path.join(save_dir, "0_{0}".format(file_idx)), x, delimiter=",")
+        file_idx += 1
+
+
 

@@ -111,10 +111,10 @@ def pc_loader(f_name):
     return load_ply(f_name), model_id, synet_id
 
 
-def load_all_point_clouds_under_folder(top_dir, n_threads=20, file_ending='.ply', verbose=False):
+def load_all_point_clouds_under_folder(top_dir, n_threads=20, file_ending='.ply', verbose=False, fixed_points=True, num_points=2048):
     file_names = [f for f in files_in_subdirs(top_dir, file_ending)]
     pclouds, model_ids, syn_ids = load_point_clouds_from_filenames(file_names, n_threads, loader=pc_loader, verbose=verbose)
-    return PointCloudDataSet(pclouds, labels=syn_ids + '_' + model_ids, init_shuffle=False)
+    return PointCloudDataSet(pclouds, labels=syn_ids + '_' + model_ids, init_shuffle=False, fixed_points=fixed_points, num_points=num_points)
 
 
 def load_point_clouds_from_filenames(file_names, n_threads, loader, verbose=False):
@@ -145,7 +145,7 @@ class PointCloudDataSet(object):
     See https://github.com/tensorflow/tensorflow/blob/a5d8217c4ed90041bea2616c14a8ddcf11ec8c03/tensorflow/examples/tutorials/mnist/input_data.py
     '''
 
-    def __init__(self, point_clouds, noise=None, labels=None, copy=True, init_shuffle=True):
+    def __init__(self, point_clouds, noise=None, labels=None, copy=True, init_shuffle=True, num_points=2048, fixed_points=True):
         '''Construct a DataSet.
         Args:
             init_shuffle, shuffle data before first epoch has been reached.
@@ -180,6 +180,13 @@ class PointCloudDataSet(object):
         else:
             self.point_clouds = point_clouds
 
+        self.num_points = num_points # number of points to filter
+        self.fixed_points = fixed_points
+
+        if self.fixed_points:
+            self.filter_fixed_points = np.random.permutation(self.n_points)[:self.num_points]
+            self.point_clouds=self.point_clouds[:, self.filter_fixed_points]
+
         self.epochs_completed = 0
         self._index_in_epoch = 0
         if init_shuffle:
@@ -210,10 +217,17 @@ class PointCloudDataSet(object):
         end = self._index_in_epoch
 
         if self.noisy_point_clouds is None:
-            return self.point_clouds[start:end], self.labels[start:end], None
+            if not self.fixed_points:
+                filter_points = np.random.permutation(self.n_points)[:self.num_points]
+                return self.point_clouds[start:end, filter_points], self.labels[start:end], None
+            else:
+                return self.point_clouds[start:end], self.labels[start:end], None
         else:
-            return self.point_clouds[start:end], self.labels[start:end], self.noisy_point_clouds[start:end]
-
+            if not self.fixed_points:
+                filter_points = np.random.permutation(self.n_points)[:self.num_points]
+                return self.point_clouds[start:end, filter_points], self.labels[start:end], self.noisy_point_clouds[start:end, filter_points]
+            else:
+                return self.point_clouds[start:end], self.labels[start:end], self.noisy_point_clouds[start:end]
     def full_epoch_data(self, shuffle=True, seed=None):
         '''Returns a copy of the examples of the entire data set (i.e. an epoch's data), shuffled.
         '''

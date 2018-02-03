@@ -42,7 +42,7 @@ top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where p
 
 model_dir = osp.join(top_out_dir, model)
 experiment_name = model #'single_class_ae_plane_chamfer_zrotate'
-n_pc_points = 600                              # Number of points per model.
+n_pc_points = 2048                              # Number of points per model.
 bneck_size = 128                                # Bottleneck-AE size
 ae_loss = 'chamfer'                             # Loss to optimize: 'emd' or 'chamfer'
 class_name = "airplane"
@@ -78,7 +78,7 @@ conf.held_out_step = 5              # How often to evaluate/print out loss on he
 # pdb.set_trace()
 reset_tf_graph()
 ae = PointNetAutoEncoder(conf.experiment_name, conf)
-ae.restore_model(model_dir, 700)
+ae.restore_model(model_dir, 250)
 
 save_dir  = save_file_path #os.path.dirname(save_file_path)
 if not os.path.exists(save_dir):
@@ -198,6 +198,7 @@ fake_pc = ae.decode(fake_x[:100])
 
 
 for i, x in enumerate(fake_pc):
+    # pdb.set_trace()
     # path = os.path.join(save_dir, '{0}.csv'.format(i))
     # np.savetxt(os.path.join(save_dir, "0_{0}".format(add[i])), x, delimiter=",")
     np.savetxt(os.path.join(save_dir, "0_{0}".format(i)), x, delimiter=",")

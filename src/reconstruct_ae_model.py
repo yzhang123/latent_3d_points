@@ -10,6 +10,7 @@ from latent_3d_points.src.point_net_ae import PointNetAutoEncoder
 from latent_3d_points.src.in_out import snc_category_to_synth_id, create_dir, PointCloudDataSet, \
                                         load_all_point_clouds_under_folder
 from latent_3d_points.src.tf_utils import reset_tf_graph
+from general_utils import apply_augmentations
 
 
 
@@ -21,7 +22,8 @@ model = sys.argv[1] # mode namel, e.g. path single_class_ae_plane_chamfer_zrotat
 model_epoch = int(sys.argv[2])
 save_dir = sys.argv[3]  # save reconstrcuted csv
 n_pc_points = int(sys.argv[4])
-
+z_rotate = sys.argv[5] # 'True' or 'False'
+fixed_points = sys.argv[6] #'True' or 'False'
 
 
 top_out_dir = '../data/'                        # Use to write Neural-Net check-points etc.
@@ -35,7 +37,7 @@ ae_loss = 'chamfer'                             # Loss to optimize: 'emd' or 'ch
 class_name = "airplane"
 syn_id = snc_category_to_synth_id()[class_name]
 class_dir = osp.join(top_in_dir , syn_id)    # e.g. /home/yz6/code/latent_3d_points/data/shape_net_core_uniform_samples_2048/02691156
-all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
+all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True, fixed_points=fixed_points == 'True', num_points=n_pc_points)
 
 
 train_dir = create_dir(osp.join(top_out_dir, experiment_name))
@@ -51,7 +53,7 @@ conf = Conf(n_input = [n_pc_points, 3],
             learning_rate = train_params['learning_rate'],
             loss_display_step = train_params['loss_display_step'],
             saver_step = train_params['saver_step'],
-            z_rotate = train_params['z_rotate'],
+            z_rotate = z_rotate == 'True', #train_params['z_rotate'],
             train_dir = train_dir,
             encoder = encoder,
             decoder = decoder,
@@ -70,17 +72,13 @@ if not os.path.exists(save_dir):
       os.makedirs(save_dir)
 
 file_idx = 0
-for _ in xrange(1):
-    feed_pc, feed_model_names, _ = all_pc_data.next_batch(100)
-    num_points_to_pick = n_pc_points
-    # perm = np.random.permutation(num_points_to_pick)
-    # pdb.set_trace()
-    feed_pc = np.take(feed_pc, np.arange(num_points_to_pick), axis=1)
+for _ in xrange(100):
+    feed_pc, feed_model_names, _ = all_pc_data.next_batch(1)
+
+    if z_rotate == 'True':
+        feed_pc = apply_augmentations(feed_pc, conf)
     fake_pc, _ = ae.reconstruct(feed_pc)
     for i, x in enumerate(fake_pc):
-        # path = os.path.join(save_dir, '{0}.csv'.format(i))
-        # np.savetxt(os.path.join(save_dir, "0_{0}".format(add[i])), x, delimiter=",")
-
         np.savetxt(os.path.join(save_dir, "0_{0}".format(file_idx)), x, delimiter=",")
         file_idx += 1
 

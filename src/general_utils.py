@@ -73,12 +73,19 @@ def apply_augmentations(batch, conf):
         batch += np.random.normal(mu, sigma, batch.shape)
 
     if conf.z_rotate:
-        r_rotation = rand_rotation_matrix()
-        r_rotation[0, 2] = 0
-        r_rotation[2, 0] = 0
-        r_rotation[1, 2] = 0
-        r_rotation[2, 1] = 0
-        r_rotation[2, 2] = 1
+        # r_rotation = rand_rotation_matrix()
+        # . . 0
+        # . . 0
+        # 0 0 1
+        rand_dir = np.random.randint(0, 3+1)
+        # rot = np.random.uniform() * 2 * np.pi;
+        rot = np.pi/2 * rand_dir
+        r_rotation = np.array([[np.cos(rot), -np.sin(rot), 0], [np.sin(rot), np.cos(rot), 0], [0, 0, 1]]);
+        # r_rotation[0, 2] = 0
+        # r_rotation[2, 0] = 0
+        # r_rotation[1, 2] = 0
+        # r_rotation[2, 1] = 0
+        # r_rotation[2, 2] = 1
         batch = batch.dot(r_rotation)
 
     return batch

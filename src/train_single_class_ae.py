@@ -18,10 +18,12 @@ n_pc_points = int(sys.argv[2]) #600  # Number of points per model.
 bneck_size = 128                                # Bottleneck-AE size
 ae_loss = sys.argv[3] #'chamfer'                             # Loss to optimize: 'emd' or 'chamfer'
 class_name = sys.argv[4] #'airplane'
+z_rotate = sys.argv[5] # 'True' or 'False'
+fixed_points = sys.argv[6] #'True' or 'False'
 
 syn_id = snc_category_to_synth_id()[class_name]
 class_dir = osp.join(top_in_dir , syn_id)
-all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True, fixed_points=False, num_points=n_pc_points)
+all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True, fixed_points=fixed_points == 'True', num_points=n_pc_points)
 
 train_dir = create_dir(osp.join(top_out_dir, experiment_name))
 train_params = default_train_params()
@@ -37,7 +39,7 @@ conf = Conf(n_input = [n_pc_points, 3],
             train_dir = train_dir,
             loss_display_step = train_params['loss_display_step'],
             saver_step = train_params['saver_step'],
-            z_rotate = False, #train_params['z_rotate'],
+            z_rotate = z_rotate == 'True', #train_params['z_rotate'],
             encoder = encoder,
             decoder = decoder,
             encoder_args = enc_args,

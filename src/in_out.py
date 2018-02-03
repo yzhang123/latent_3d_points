@@ -217,6 +217,7 @@ class PointCloudDataSet(object):
         end = self._index_in_epoch
 
         if self.noisy_point_clouds is None:
+            # pdb.set_trace()
             if not self.fixed_points:
                 filter_points = np.random.permutation(self.n_points)[:self.num_points]
                 return self.point_clouds[start:end, filter_points], self.labels[start:end], None

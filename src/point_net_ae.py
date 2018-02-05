@@ -37,9 +37,6 @@ class PointNetAutoEncoder(AutoEncoder):
 
         with tf.variable_scope(name):
 
-            import pdb
-            # pdb.set_trace()
-
 
             self.z = c.encoder(self.x, **c.encoder_args)
             self.bottleneck_size = int(self.z.get_shape()[1])
@@ -94,6 +91,7 @@ class PointNetAutoEncoder(AutoEncoder):
         else:
             w_reg_alpha = 1.0
 
+
         for rl in reg_losses:
             self.loss += (w_reg_alpha * rl)
 
@@ -128,7 +126,7 @@ class PointNetAutoEncoder(AutoEncoder):
                 if batch_i is None:  # In this case the denoising concern only the augmentation.
                     batch_i = original_data
             else:
-                batch_i, _, _ = train_data.next_batch(batch_size) # bs x 2048 x 3
+                batch_i, _, _ = train_data.next_batch(batch_size) # bs x num_points x 3
 
             batch_i = apply_augmentations(batch_i, configuration)   # This is a new copy of the batch.
 

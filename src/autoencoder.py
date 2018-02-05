@@ -11,9 +11,10 @@ import numpy as np
 
 from tflearn import is_training
 
-from . in_out import create_dir, pickle_data, unpickle_data
+from . in_out import create_dir, pickle_data, unpickle_data, save_csv
 from . general_utils import apply_augmentations, iterate_in_chunks
 from . neural_net import Neural_Net
+import pdb
 
 model_saver_id = 'models.ckpt'
 
@@ -23,7 +24,8 @@ class Configuration():
                  training_epochs=200, batch_size=10, learning_rate=0.001, denoising=False,
                  saver_step=None, train_dir=None, z_rotate=False, loss='chamfer', gauss_augment=None,
                  saver_max_to_keep=None, loss_display_step=1, debug=False,
-                 n_z=None, n_output=None, latent_vs_recon=1.0, consistent_io=None):
+                 n_z=None, n_output=None, latent_vs_recon=1.0, consistent_io=None, val_dir=None, test_dir=None,
+                 experiment_name=None, val_step=None, test_step=None):
 
         # Parameters for any AE
         self.n_input = n_input
@@ -40,11 +42,16 @@ class Configuration():
         self.loss_display_step = loss_display_step
         self.saver_step = saver_step
         self.train_dir = train_dir
+        self.val_dir = val_dir
+        self.test_dir = test_dir
         self.gauss_augment = gauss_augment
         self.z_rotate = z_rotate
         self.saver_max_to_keep = saver_max_to_keep
         self.training_epochs = training_epochs
         self.debug = debug
+        self.experiment_name = experiment_name
+        self.val_step = val_step
+        self.test_step = test_step
 
         # Used in VAE
         self.latent_vs_recon = np.array([latent_vs_recon], dtype=np.float32)[0]
@@ -172,7 +179,7 @@ class AutoEncoder(Neural_Net):
             z = np.expand_dims(z, 0)
         return self.sess.run((self.x_reconstr), {self.z: z})
 
-    def train(self, train_data, configuration, log_file=None, held_out_data=None):
+    def train(self, train_data, configuration, log_file=None, val_data=None, test_data=None):
         c = configuration
         stats = []
 
@@ -198,11 +205,20 @@ class AutoEncoder(Neural_Net):
                 summary = self.sess.run(self.merged_summaries)
                 self.train_writer.add_summary(summary, epoch)
 
-            if held_out_data is not None and c.exists_and_is_not_none('held_out_step') and (epoch % c.held_out_step == 0):
-                loss, duration = self._single_epoch_train(held_out_data, c, only_fw=True)
+            if val_data is not None and c.val_step is not None and (epoch % c.val_step == 0):
+                loss, duration = self._single_epoch_train(val_data, c, only_fw=True)
                 print("Held Out Data :", 'forward time (minutes)=', "{:.4f}".format(duration / 60.0), "loss=", "{:.9f}".format(loss))
                 if log_file is not None:
                     log_file.write('On Held_Out: %04d\t%.9f\t%.4f\n' % (epoch, loss, duration / 60.0))
+            
+            if test_data is not None and c.test_step is not None and (epoch % c.test_step == 0):
+                reconstructions, data_loss, feed_data, label_ids, original_data = self.evaluate(test_data, c)
+                save_csv(osp.join(c.test_dir, 'reconstr_epoch_%s' % epoch), reconstructions, label_ids)
+                save_csv(osp.join(c.test_dir, 'feeddata_epoch_%s' % epoch), feed_data, label_ids)
+                print("Test Data :", "loss=", "{:.9f}".format(data_loss))
+                if log_file is not None:
+                    log_file.write('On Test Data: %04d\t%.9f\n' % (epoch, data_loss))
+
         return stats
 
     def evaluate(self, in_data, configuration, ret_pre_augmentation=False):

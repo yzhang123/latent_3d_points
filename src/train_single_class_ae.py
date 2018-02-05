@@ -6,7 +6,7 @@ from latent_3d_points.src.autoencoder import Configuration as Conf
 from latent_3d_points.src.point_net_ae import PointNetAutoEncoder
 
 from latent_3d_points.src.in_out import snc_category_to_synth_id, create_dir, PointCloudDataSet, \
-                                        load_all_point_clouds_under_folder
+                                        load_all_point_clouds_under_folder, pickle_data
 
 from latent_3d_points.src.tf_utils import reset_tf_graph
 
@@ -23,9 +23,19 @@ fixed_points = sys.argv[6] #'True' or 'False'
 
 syn_id = snc_category_to_synth_id()[class_name]
 class_dir = osp.join(top_in_dir , syn_id)
-all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True, fixed_points=fixed_points == 'True', num_points=n_pc_points)
 
-train_dir = create_dir(osp.join(top_out_dir, experiment_name))
+# point cloud instance
+train_pc, val_pc, test_pc = load_all_point_clouds_under_folder(class_dir, n_threads=2, file_ending='.ply', verbose=True, fixed_points=fixed_points == 'True', num_points=n_pc_points)
+train_dir = create_dir(osp.join(top_out_dir, 'train_'+experiment_name))
+val_dir = create_dir(osp.join(top_out_dir, 'val_'+experiment_name))
+test_dir = create_dir(osp.join(top_out_dir, 'test_'+experiment_name))
+
+pickle_data(osp.join(train_dir, 'train_pc.pkl'), train_pc)
+pickle_data(osp.join(val_dir, 'val_pc.pkl'), val_pc)
+pickle_data(osp.join(test_dir, 'test_pc.pkl'), test_pc)
+
+
+# dictionary
 train_params = default_train_params()
 encoder, decoder, enc_args, dec_args = mlp_architecture_ala_iclr_18(n_pc_points, bneck_size)
 
@@ -37,16 +47,20 @@ conf = Conf(n_input = [n_pc_points, 3],
             denoising = train_params['denoising'],
             learning_rate = train_params['learning_rate'],
             train_dir = train_dir,
+            test_dir = test_dir,
+            val_dir = val_dir,
             loss_display_step = train_params['loss_display_step'],
             saver_step = train_params['saver_step'],
             z_rotate = z_rotate == 'True', #train_params['z_rotate'],
             encoder = encoder,
             decoder = decoder,
             encoder_args = enc_args,
-            decoder_args = dec_args
+            decoder_args = dec_args,
+            experiment_name = experiment_name,
+            val_step = 5,
+            test_step = 200
            )
-conf.experiment_name = experiment_name
-conf.held_out_step = 5              # How often to evaluate/print out loss on held_out data (if any).
+            # How often to evaluate/print out loss on held_out data (if any). # epochs
 conf.save(osp.join(train_dir, 'configuration'))
 
 reset_tf_graph()
@@ -54,10 +68,10 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 
 buf_size = 1 # flush each line
 fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
-train_stats = ae.train(all_pc_data, conf, log_file=fout)
+train_stats = ae.train(train_pc, conf, log_file=fout, val_data=val_pc, test_data=test_pc)
 fout.close()
 
-
-# feed_pc, feed_model_names, _ = all_pc_data.next_batch(10)
-# reconstructions = ae.reconstruct(feed_pc)
-# latent_codes = ae.transform(feed_pc)
+print('On train data reconstruction')
+reconstructions, data_loss, feed_data, label_ids, original_data = ae.evaluate(train_pc, conf)
+save_csv(osp.join(c.train_dir, 'reconstr_epoch_%s' % epoch), reconstructions, label_ids)
+save_csv(osp.join(c.train_dir, 'feeddata_epoch_%s' % epoch), feed_data, label_ids)

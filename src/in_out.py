@@ -33,6 +33,15 @@ snc_synth_id_to_category = {
     '04554684': 'washer',    '02858304': 'boat',       '02992529': 'cellphone'
 }
 
+def save_csv(save_dir, tensor, label_ids):
+    create_dir(save_dir)
+    num_to_save = max(100, len(tensor))
+    file_idx = 0
+    for i in xrange(num_to_save):
+        np.savetxt(os.path.join(save_dir + "_{0}_{1}".format(file_idx, label_ids[i])), tensor[i], delimiter=",")
+        file_idx += 1
+
+
 
 def snc_category_to_synth_id():
     d = snc_synth_id_to_category
@@ -69,6 +78,7 @@ def unpickle_data(file_name):
     inFile.close()
 
 
+# generator, returns all files in top_dir that contain the search_pattern
 def files_in_subdirs(top_dir, search_pattern):
     regex = re.compile(search_pattern)
     for path, _, files in os.walk(top_dir):
@@ -106,26 +116,43 @@ def pc_loader(f_name):
     i.e. /syn_id/model_name.ply
     '''
     tokens = f_name.split('/')
-    model_id = tokens[-1].split('.')[0]
+    model_id = tokens[-1].split('.')[0] # model_name
     synet_id = tokens[-2]
     return load_ply(f_name), model_id, synet_id
 
 
 def load_all_point_clouds_under_folder(top_dir, n_threads=20, file_ending='.ply', verbose=False, fixed_points=True, num_points=2048):
-    file_names = [f for f in files_in_subdirs(top_dir, file_ending)]
-    pclouds, model_ids, syn_ids = load_point_clouds_from_filenames(file_names, n_threads, loader=pc_loader, verbose=verbose)
-    return PointCloudDataSet(pclouds, labels=syn_ids + '_' + model_ids, init_shuffle=False, fixed_points=fixed_points, num_points=num_points)
+    """
+    return train, val and test instances of PointCloudDataSet
+    """
+    file_names          = [f for f in files_in_subdirs(top_dir, file_ending)]
+    num_examples        = len(file_names)
+    np.random.shuffle(file_names)
+    num_train_examples  = int(num_examples * 0.8)
+    num_val_examples    = int(num_examples * 0.1)
+    num_test_examples   = num_examples - num_train_examples - num_val_examples
+
+    train_files = file_names[ :num_train_examples]
+    val_files   = file_names[num_train_examples : num_train_examples+num_val_examples]
+    test_files  = file_names[-num_test_examples: ]
+    train_pclouds, train_model_ids, train_syn_ids   = load_point_clouds_from_filenames(train_files, n_threads, loader=pc_loader, verbose=verbose)
+    val_pclouds, val_model_ids, val_syn_ids         = load_point_clouds_from_filenames(val_files, n_threads, loader=pc_loader, verbose=verbose)
+    test_pclouds, test_model_ids, test_syn_ids      = load_point_clouds_from_filenames(test_files, n_threads, loader=pc_loader, verbose=verbose)
+    # pdb.set_trace()
+    return  PointCloudDataSet(train_pclouds, labels=train_syn_ids + '_' + train_model_ids, init_shuffle=False, fixed_points=fixed_points, num_points=num_points), \
+            PointCloudDataSet(val_pclouds, labels=val_syn_ids + '_' + val_model_ids, init_shuffle=False, fixed_points=fixed_points, num_points=num_points), \
+            PointCloudDataSet(test_pclouds, labels=test_syn_ids + '_' + test_model_ids, init_shuffle=False, fixed_points=fixed_points, num_points=num_points)
 
 
 def load_point_clouds_from_filenames(file_names, n_threads, loader, verbose=False):
-    pc = loader(file_names[0])[0]
+    pc = loader(file_names[0])[0]   # numpy array num_points x 3
     pclouds = np.empty([len(file_names), pc.shape[0], pc.shape[1]], dtype=np.float32)
     model_names = np.empty([len(file_names)], dtype=object)
     class_ids = np.empty([len(file_names)], dtype=object)
     pool = Pool(n_threads)
 
     for i, data in enumerate(pool.imap(loader, file_names)):
-        pclouds[i, :, :], model_names[i], class_ids[i] = data
+        pclouds[i, :, :], model_names[i], class_ids[i] = data #class id, id of e.g. plane
 
     pool.close()
     pool.join()
@@ -136,9 +163,7 @@ def load_point_clouds_from_filenames(file_names, n_threads, loader, verbose=Fals
     if verbose:
         print('{0} pclouds were loaded. They belong in {1} shape-classes.'.format(len(pclouds), len(np.unique(class_ids))))
 
-
     return pclouds, model_names, class_ids
-
 
 class PointCloudDataSet(object):
     '''
@@ -153,7 +178,7 @@ class PointCloudDataSet(object):
             original_pclouds, labels, (None or Feed) # TODO Rename
         '''
 
-        self.num_examples = point_clouds.shape[0]
+        self.num_examples = point_clouds.shape[0] # number of shapes
         self.n_points = point_clouds.shape[1]
 
         if labels is not None:
@@ -181,7 +206,7 @@ class PointCloudDataSet(object):
             self.point_clouds = point_clouds
 
         self.num_points = num_points # number of points to filter
-        self.fixed_points = fixed_points
+        self.fixed_points = fixed_points # bool, true if always use same points, otherwise sample
 
         if self.fixed_points:
             self.filter_fixed_points = np.random.permutation(self.n_points)[:self.num_points]
@@ -242,6 +267,12 @@ class PointCloudDataSet(object):
         ns = None
         if self.noisy_point_clouds is not None:
             ns = self.noisy_point_clouds[perm]
+            if not self.fixed_points:
+                filter_points = np.random.permutation(self.n_points)[:self.num_points]
+                ns = ns[:, filter_points]
+        if not self.fixed_points:
+            filter_points = np.random.permutation(self.n_points)[:self.num_points]
+            pc = pc[:, filter_points]
         return pc, lb, ns
 
     def merge(self, other_data_set):

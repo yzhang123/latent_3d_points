@@ -110,11 +110,39 @@ def get_codes_with_max_diff(data):
 	print(repr(c2))
 
 	return c1, c2
+def get_average_distance(code):
+	num_samples = len(code)
+	total_dist = 0 
+	for i in range(num_samples):
+		for j in range(num_samples):
+			if i == j:
+				continue
+			dist = (code[i] - code[j]) * (code[i] - code[j])
+			dist = dist.sum()
+			total_dist += np.sqrt(dist)
+	total_dist /= num_samples*(num_samples - 1)
+	return total_dist
+
+def get_nn_distance(code):
+	num_samples = len(code)
+	total_dist = 0 
+	for i in range(num_samples):
+		min_dist = np.inf
+		for j in range(num_samples):
+			if i == j:
+				continue
+			dist = (code[i] - code[j]) * (code[i] - code[j])
+			dist = np.sqrt(dist.sum())
+			min_dist = min(min_dist, dist)
+		total_dist += min_dist
+	total_dist /= num_samples
+	return total_dist
 
 def get_nn(code, gen_code):
 	# pdb.set_trace()
 	dist_list = list()
-	d = defaultdict(list)
+	code_to_gen = defaultdict(list)
+	gen_to_code = defaultdict(list)
 	l = len(code)
 	l_gen = len(gen_code)
 	for j in range(l_gen):
@@ -123,13 +151,15 @@ def get_nn(code, gen_code):
 		for i in range(l):
 			dist = gen_code[j] - code[i]
 			dist *=dist
-			dist = dist.sum()
+			dist = np.sqrt(dist.sum())
 			if dist < min_dist:
 				min_dist = dist
 				code_index = i
-		d[code_index].append((j, min_dist))
+		gen_to_code[j] = (code_index, min_dist)
+		code_to_gen[code_index].append((j, min_dist))
 		dist_list.append(min_dist)
-	return d, dist_list
+
+	return code_to_gen, gen_to_code,  dist_list, np.mean(dist_list)
 
 
 if __name__=="__main__":

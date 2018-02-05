@@ -33,12 +33,12 @@ snc_synth_id_to_category = {
     '04554684': 'washer',    '02858304': 'boat',       '02992529': 'cellphone'
 }
 
-def save_csv(save_dir, tensor, label_ids):
+def save_csv(save_dir, tensor, label_ids, max_to_save):
     create_dir(save_dir)
-    num_to_save = max(100, len(tensor))
+    num_to_save = min(max_to_save, len(tensor))
     file_idx = 0
     for i in xrange(num_to_save):
-        np.savetxt(os.path.join(save_dir + "_{0}_{1}".format(file_idx, label_ids[i])), tensor[i], delimiter=",")
+        np.savetxt(os.path.join(save_dir, "{0}_{1}.csv".format(file_idx, snc_synth_id_to_category[label_ids[i].split('_')[0]])), tensor[i], delimiter=",")
         file_idx += 1
 
 

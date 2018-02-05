@@ -6,9 +6,10 @@ from latent_3d_points.src.autoencoder import Configuration as Conf
 from latent_3d_points.src.point_net_ae import PointNetAutoEncoder
 
 from latent_3d_points.src.in_out import snc_category_to_synth_id, create_dir, PointCloudDataSet, \
-                                        load_all_point_clouds_under_folder, pickle_data
+                                        load_all_point_clouds_under_folder, pickle_data, save_csv
 
 from latent_3d_points.src.tf_utils import reset_tf_graph
+from latent_3d_points.src.general_utils import apply_augmentations
 
 top_out_dir = '../data/'                        # Use to write Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
@@ -71,7 +72,28 @@ fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
 train_stats = ae.train(train_pc, conf, log_file=fout, val_data=val_pc, test_data=test_pc)
 fout.close()
 
+print('On train hidden transform')
+train_hidden, _, _ = train_pc.full_epoch_data()
+train_hidden = apply_augmentations(train_hidden, conf)
+train_hidden = ae.transform(train_hidden)
+np.save(osp.join(train_dir, 'hidden.npy'), train_hidden)
+
+print('On val hidden transform')
+val_hidden, _, _ = val_pc.full_epoch_data()
+val_hidden = apply_augmentations(val_hidden, conf)
+val_hidden = ae.transform(val_hidden)
+np.save(osp.join(val_dir, 'hidden.npy'), val_hidden)
+
+
+print('On test hidden transform')
+test_hidden, _, _ = test_pc.full_epoch_data()
+test_hidden = apply_augmentations(test_hidden, conf)
+test_hidden = ae.transform(test_hidden)
+np.save(osp.join(test_dir, 'hidden.npy'), test_hidden)
+
+
+
 print('On train data reconstruction')
 reconstructions, data_loss, feed_data, label_ids, original_data = ae.evaluate(train_pc, conf)
-save_csv(osp.join(c.train_dir, 'reconstr_epoch_%s' % epoch), reconstructions, label_ids)
-save_csv(osp.join(c.train_dir, 'feeddata_epoch_%s' % epoch), feed_data, label_ids)
+save_csv(osp.join(c.train_dir, 'reconstr_epoch_%s' % epoch), reconstructions, label_ids, max_to_save=100)
+save_csv(osp.join(c.train_dir, 'feeddata_epoch_%s' % epoch), feed_data, label_ids, max_to_save=100)

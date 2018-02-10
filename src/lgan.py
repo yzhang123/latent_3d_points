@@ -55,7 +55,7 @@ if __name__=='__main__':
     import sys
     
     data_file = sys.argv[1] #'../data/plane_hidden.npy'
-    save_dir = sys.argv[2] #'../data/lgan_plane'
+    save_dir = sys.argv[2] #'../data/lgan_plane' will create this
 
 
     num_epochs=1000
@@ -86,44 +86,49 @@ if __name__=='__main__':
         
     for epoch in xrange(num_epochs):
         data_loader = DataLoader(data_file, batch_size=batch_size, shuffle=True, repeat=False).iterator()
-        for batch_num in xrange(80):
-            # train D
-            for _ in xrange(1):
-#                 pdb.set_trace()
-                optimD.zero_grad()
-                batch = data_loader.next()
-                x = torch.from_numpy(batch)
-                real.data.copy_(x)
-                logit_real = d(real)
-                loss_real = criterionD(logit_real, label_one)
-                #loss_real.backward()
+        batch_num = 0
+        while True:
+            try:
+                # train D
+                for _ in xrange(1):
+    #                 pdb.set_trace()
+                    optimD.zero_grad()
+                    batch = data_loader.next()
+                    x = torch.from_numpy(batch)
+                    real.data.copy_(x)
+                    logit_real = d(real)
+                    loss_real = criterionD(logit_real, label_one)
+                    #loss_real.backward()
 
+                    generate_noise(noise)
+                    x_fake = g(noise)
+                    logit_fake = d(x_fake.detach())
+                    loss_fake = criterionD(logit_fake, label_zero)
+                    #loss_fake.backward()
+
+                    loss = loss_real + loss_fake
+                    loss.backward()
+                    optimD.step()
+
+                
+                # Train G
+                optimG.zero_grad()
                 generate_noise(noise)
                 x_fake = g(noise)
-                logit_fake = d(x_fake.detach())
-                loss_fake = criterionD(logit_fake, label_zero)
-                #loss_fake.backward()
-
-                loss = loss_real + loss_fake
-                loss.backward()
-                optimD.step()
-
-            
-            # Train G
-            optimG.zero_grad()
-            generate_noise(noise)
-            x_fake = g(noise)
-            logit_fake = d(x_fake)
-            loss_fake = criterionG(logit_fake, label_one)
-            loss_fake.backward()
-            optimG.step()
-            
-            d_loss = loss.data.cpu().numpy().mean()
-            g_loss = loss_fake.data.cpu().numpy().mean()
-            
-            if batch_num % 10 == 0:
-                print('epoch: {0}, iter: {1}, d_loss: {2}, g_loss: {3}'.format(epoch, batch_num, d_loss, g_loss))
-            
+                logit_fake = d(x_fake)
+                loss_fake = criterionG(logit_fake, label_one)
+                loss_fake.backward()
+                optimG.step()
+                
+                d_loss = loss.data.cpu().numpy().mean()
+                g_loss = loss_fake.data.cpu().numpy().mean()
+                
+                if batch_num % 10 == 0:
+                    print('epoch: {0}, iter: {1}, d_loss: {2}, g_loss: {3}'.format(epoch, batch_num, d_loss, g_loss))
+                
+                batch_num += 1
+            except:
+                break
             
         torch.save(g, save_dir + '/G_network_{0}.pth'.format(epoch))
             

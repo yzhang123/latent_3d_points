@@ -77,15 +77,16 @@ def apply_augmentations(batch, conf):
         # . . 0
         # . . 0
         # 0 0 1
-        rand_dir = np.random.randint(0, 3+1)
-        # rot = np.random.uniform() * 2 * np.pi;
-        rot = np.pi/2 * rand_dir
-        r_rotation = np.array([[np.cos(rot), -np.sin(rot), 0], [np.sin(rot), np.cos(rot), 0], [0, 0, 1]]);
-        # r_rotation[0, 2] = 0
-        # r_rotation[2, 0] = 0
-        # r_rotation[1, 2] = 0
-        # r_rotation[2, 1] = 0
-        # r_rotation[2, 2] = 1
-        batch = batch.dot(r_rotation)
+        for i in range(len(batch)):
+            rand_dir = np.random.randint(0, 3+1)
+            # rot = np.random.uniform() * 2 * np.pi;
+            rot = np.pi/2 * rand_dir
+            r_rotation = np.array([[np.cos(rot), -np.sin(rot), 0], [np.sin(rot), np.cos(rot), 0], [0, 0, 1]]);
+            # r_rotation[0, 2] = 0
+            # r_rotation[2, 0] = 0
+            # r_rotation[1, 2] = 0
+            # r_rotation[2, 1] = 0
+            # r_rotation[2, 2] = 1
+            batch[i] = batch[i].dot(r_rotation)
 
     return batch

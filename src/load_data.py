@@ -5,9 +5,10 @@ from latent_3d_points.src.point_net_ae import PointNetAutoEncoder
 from latent_3d_points.src.in_out import snc_category_to_synth_id, create_dir, PointCloudDataSet, \
                                         load_all_point_clouds_under_folder, unpickle_data
 from latent_3d_points.src.tf_utils import reset_tf_graph
-from analyze import get_nn, get_nn_distance, get_average_distance
+from analyze import get_nn, get_nn_distance, get_average_distance, get_nn_chamfer, get_nn_chamfer_own, get_avg_chamfer_own, get_chamfer_permut
 
 from latent_3d_points.src.general_utils import apply_augmentations
+from latent_3d_points.external.structural_losses.tf_nndistance import nn_distance
 
 
 import sys, os
@@ -16,11 +17,11 @@ import numpy as np
 import pdb
 
 model = sys.argv[1] # mode namel, e.g. path single_class_ae_plane_chamfer_zrotate
-n_pc_points = 600
 model_epoch = int(sys.argv[2])
-train_pc_file = sys.argv[3]
-test_pc_file = sys.argv[4]
-z_rotate = sys.argv[5] # 'True' or 'False'
+n_pc_points = int(sys.argv[3])
+train_pc_file = sys.argv[4]
+test_pc_file = sys.argv[5]
+z_rotate = sys.argv[6] # 'True' or 'False'
 
 top_out_dir = '../data/'                        # Use to write Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
@@ -68,32 +69,50 @@ for x in unpickle_data(test_pc_file):
 train_data, _, _ = train_pc_data.full_epoch_data(shuffle=False)
 train_feed = apply_augmentations(train_data, conf)
 train_hidden = ae.transform(train_feed)
+train_reconstr, _ = ae.reconstruct(train_feed)
 
 test_data, _, _ = test_pc_data.full_epoch_data(shuffle=False)
 test_feed = apply_augmentations(test_data, conf)
 test_hidden = ae.transform(test_feed)
 test_reconstr, _ = ae.reconstruct(test_feed)
+
+
+# print('chamfer distance between test and train reconstruct')
+# fake_to_true, true_to_fake, dist_list = get_nn_chamfer(train_reconstr, test_reconstr)
+# print("Output", np.mean(dist_list))
+# print('chamfer nn distance between train reconstructions')
+# fake_to_true, true_to_fake, dist_list = get_nn_chamfer_own(train_reconstr)
+# print("Output", np.mean(dist_list))
+# print('chamfer avg distance between train reconstructions')
+# fake_to_true, true_to_fake, dist_list = get_avg_chamfer_own(train_reconstr)
+# print("Output", np.mean(dist_list))
     
-print('avg_dist_train')
-avg_dist_train = get_average_distance(train_hidden)
-print("avg_dist_train: ", avg_dist_train)
+# print('avg_dist_train')
+# avg_dist_train = get_average_distance(train_hidden)
+# print("avg_dist_train: ", avg_dist_train)
 print('nn_dist_train')
-nn_dist_train = get_nn_distance(train_hidden)
+nearest_list, nn_dist_train = get_nn_distance(train_hidden)
 print("nn_dist_train: ", nn_dist_train)
-print('nn_dict')
-dict_code_to_gen, dict_gen_to_code, nn_list, nn_mean = get_nn(train_hidden, test_hidden)
-print("nn_mean: ", nn_mean)
-print("nn_list")
-print(nn_list)
+
+print("chamfer train nearest average using nearest list")
+avg_nearest_train = get_chamfer_permut(train_reconstr, nearest_list)
+print(avg_nearest_train)
+# print('nn_dict')
+# dict_code_to_gen, dict_gen_to_code, nn_list, nn_mean = get_nn(train_hidden, test_hidden)
+# print("nn_mean: ", nn_mean)
+# print("nn_list")
+# print(nn_list)
 
 
-tmp_dir = osp.join(top_out_dir, 'tmp')
-create_dir(tmp_dir)
 
-for i in range(100):
-    np.savetxt(osp.join(tmp_dir, '{0}_test_reconstr.csv'.format(i)), test_reconstr[i], delimiter=",")
-    np.savetxt(osp.join(tmp_dir, '{0}_test_feed.csv'.format(i)), test_feed[i], delimiter=",")
-    np.savetxt(osp.join(tmp_dir, '{0}_test_nearest.csv'.format(i)), train_feed[dict_gen_to_code[i][0]], delimiter=",")
 
+# tmp_dir = osp.join(top_out_dir, 'tmp_rotate')
+# create_dir(tmp_dir)
+
+# for i in range(100):
+#     np.savetxt(osp.join(tmp_dir, '{0}_test_reconstr.csv'.format(i)), test_reconstr[i], delimiter=",")
+#     np.savetxt(osp.join(tmp_dir, '{0}_test_feed.csv'.format(i)), test_feed[i], delimiter=",")
+#     np.savetxt(osp.join(tmp_dir, '{0}_test_nearest.csv'.format(i)), train_feed[dict_gen_to_code[i][0]], delimiter=",")
+#     np.savetxt(osp.join(tmp_dir, '{0}_test_nearest_reconstr.csv'.format(i)), train_reconstr[dict_gen_to_code[i][0]], delimiter=",")
 
 

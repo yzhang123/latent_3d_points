@@ -2,87 +2,23 @@
 import numpy as np
 import os.path as osp
 
-import tflearn
-
-import tensorflow as tf
-from latent_3d_points.src.ae_templates import mlp_architecture_ala_iclr_18, default_train_params
-from latent_3d_points.src.autoencoder import Configuration as Conf
-from latent_3d_points.src.point_net_ae import PointNetAutoEncoder
-from latent_3d_points.src.in_out import snc_category_to_synth_id, create_dir, PointCloudDataSet, \
-                                        load_all_point_clouds_under_folder
-from latent_3d_points.src.tf_utils import reset_tf_graph
-
-
-
-
 import sys, os
 import pdb
 
-model = sys.argv[1] # mode name, e.g. single_class_ae_plane_chamfer_zrotate
-hidden_code_file = sys.argv[2]
-save_file_path = sys.argv[3]  # save file at #'../data/generated_planes'
+from latent_3d_points.src.load_ae_model import load as load_ae
+
+model_path = sys.argv[1] # model path of ae model
+num_points = int(sys.argv[3])   # number of points per object
+hidden_code_file = sys.argv[4]  # hidden code file
 
 
 
+ae = load_ae(model_path, zrotate, num_points)
+
+hidden_z = np.load(hidden_code_file)
+hidden_x = ae.decode(hidden_z)
 
 
-
-
-
-
-
-
-
-
-
-
-top_out_dir = '../data/'                        # Use to write Neural-Net check-points etc.
-top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
-
-
-model_dir = osp.join(top_out_dir, model)
-experiment_name = model #'single_class_ae_plane_chamfer_zrotate'
-n_pc_points = 2048                              # Number of points per model.
-bneck_size = 128                                # Bottleneck-AE size
-ae_loss = 'chamfer'                             # Loss to optimize: 'emd' or 'chamfer'
-class_name = "airplane"
-syn_id = snc_category_to_synth_id()[class_name]
-class_dir = osp.join(top_in_dir , syn_id)    # e.g. /home/yz6/code/latent_3d_points/data/shape_net_core_uniform_samples_2048/02691156
-all_pc_data = load_all_point_clouds_under_folder(class_dir, n_threads=8, file_ending='.ply', verbose=True)
-
-
-train_dir = create_dir(osp.join(top_out_dir, experiment_name))
-out_dir = create_dir(osp.join(top_out_dir, "generated_planes"))
-train_params = default_train_params()
-encoder, decoder, enc_args, dec_args = mlp_architecture_ala_iclr_18(n_pc_points, bneck_size)
-
-
-conf = Conf(n_input = [n_pc_points, 3],
-            loss = ae_loss,
-            training_epochs = train_params['training_epochs'],
-            batch_size = train_params['batch_size'],
-            denoising = train_params['denoising'],
-            learning_rate = train_params['learning_rate'],
-            loss_display_step = train_params['loss_display_step'],
-            saver_step = train_params['saver_step'],
-            z_rotate = train_params['z_rotate'],
-            train_dir = train_dir,
-            encoder = encoder,
-            decoder = decoder,
-            encoder_args = enc_args,
-            decoder_args = dec_args
-           )
-conf.experiment_name = experiment_name
-conf.held_out_step = 5              # How often to evaluate/print out loss on held_out data (if any).
-
-# pdb.set_trace()
-reset_tf_graph()
-ae = PointNetAutoEncoder(conf.experiment_name, conf)
-ae.restore_model(model_dir, 250)
-
-save_dir  = save_file_path #os.path.dirname(save_file_path)
-if not os.path.exists(save_dir):
-      os.makedirs(save_dir)
 
 # # INTERPOLATE 
 
@@ -193,12 +129,12 @@ if not os.path.exists(save_dir):
 
 
 
-fake_x=np.load(hidden_code_file)
-fake_pc = ae.decode(fake_x[:100])
+# fake_x=np.load(hidden_code_file)
+# fake_pc = ae.decode(fake_x[:100])
 
 
-for i, x in enumerate(fake_pc):
-    # pdb.set_trace()
-    # path = os.path.join(save_dir, '{0}.csv'.format(i))
-    # np.savetxt(os.path.join(save_dir, "0_{0}".format(add[i])), x, delimiter=",")
-    np.savetxt(os.path.join(save_dir, "0_{0}".format(i)), x, delimiter=",")
+# for i, x in enumerate(fake_pc):
+#     # pdb.set_trace()
+#     # path = os.path.join(save_dir, '{0}.csv'.format(i))
+#     # np.savetxt(os.path.join(save_dir, "0_{0}".format(add[i])), x, delimiter=",")
+#     np.savetxt(os.path.join(save_dir, "0_{0}".format(i)), x, delimiter=",")

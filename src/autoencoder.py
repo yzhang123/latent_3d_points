@@ -25,7 +25,7 @@ class Configuration():
                  saver_step=None, train_dir=None, z_rotate=False, loss='chamfer', gauss_augment=None,
                  saver_max_to_keep=None, loss_display_step=1, debug=False,
                  n_z=None, n_output=None, latent_vs_recon=1.0, consistent_io=None, val_dir=None, test_dir=None,
-                 experiment_name=None, val_step=None, test_step=None):
+                 experiment_name=None, val_step=None, test_step=None, allow_gpu_growth=True):
 
         # Parameters for any AE
         self.n_input = n_input
@@ -52,6 +52,7 @@ class Configuration():
         self.experiment_name = experiment_name
         self.val_step = val_step
         self.test_step = test_step
+        self.allow_gpu_growth = allow_gpu_growth
 
         # Used in VAE
         self.latent_vs_recon = np.array([latent_vs_recon], dtype=np.float32)[0]

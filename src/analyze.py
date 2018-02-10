@@ -2,7 +2,81 @@ import numpy as np
 import sys
 from collections import defaultdict
 import pprint
+from latent_3d_points.external.structural_losses.tf_nndistance import nn_distance
 import pdb
+import tensorflow as tf
+
+
+def get_chamfer_permut(data, permut):
+	assert len(permut) == len(data)
+	permut = np.array(permut)
+	c1, _, c2, _ = nn_distance(data, data[permut])
+	sess = tf.Session()
+	c1, c2 = sess.run([c1, c2])
+	dist = np.mean(c1) + np.mean(c2)
+	return dist
+
+
+def get_nn_chamfer_own(data):
+	l_data = len(data)
+	l_fake = l_data
+	data_fake = data
+	sess = tf.Session()
+	dist_list = list()
+	fake_to_true = defaultdict(list)
+	true_to_fake = defaultdict(list)
+	for j in range(l_fake):
+		fake_data = np.tile(data_fake[j], (l_data-1, 1, 1))
+		c1, _, c2, _ = nn_distance(fake_data, np.concatenate((data[:j], data[j+1:]), axis=0))
+		c1, c2 = sess.run([c1, c2])
+		dist = np.mean(c1 , axis=1) + np.mean(c2, axis=1)
+		code = dist.argmin()
+		dist = dist.min()
+		fake_to_true[j] = (code, dist)
+		true_to_fake[code].append((j, dist))
+		dist_list.append(dist)	
+		print('compared to %s: %s' %(j, np.mean(dist_list)))
+	return fake_to_true, true_to_fake, dist_list
+
+def get_avg_chamfer_own(data):
+	l_data = len(data)
+	l_fake = l_data
+	data_fake = data
+	sess = tf.Session()
+	dist_list = list()
+	for j in range(l_fake):
+		fake_data = np.tile(data_fake[j], (l_data-1, 1, 1))
+		c1, _, c2, _ = nn_distance(fake_data, np.concatenate((data[:j], data[j+1:]), axis=0))
+		c1, c2 = sess.run([c1, c2])
+		dist = np.mean(c1 , axis=1) + np.mean(c2, axis=1)
+		dist = dist.mean()
+		dist_list.append(dist)	
+		print('compared to %s: %s' %(j, np.mean(dist_list)))
+	return fake_to_true, true_to_fake, dist_list
+
+
+
+def get_nn_chamfer(data, data_fake):
+	l_data = len(data)
+	l_fake = len(data_fake)	
+	sess = tf.Session()
+	dist_list = list()
+	fake_to_true = defaultdict(list)
+	true_to_fake = defaultdict(list)
+	for j in range(l_fake):
+		fake_data = np.tile(data_fake[j], (l_data, 1, 1))
+		c1, _, c2, _ = nn_distance(fake_data, data)
+		c1, c2 = sess.run([c1, c2])
+		dist = np.mean(c1 , axis=1) + np.mean(c2, axis=1)
+		code = dist.argmin()
+		dist = dist.min()
+		fake_to_true[j] = (code, dist)
+		true_to_fake[code].append((j, dist))
+		dist_list.append(dist)	
+		print('compared to %s: %s' %(j, np.mean(dist_list)))
+	return fake_to_true, true_to_fake, dist_list
+
+
 
 def get_mean_and_std_of_latent_code_ae(data):
 	num_samples, hidden_dim = data.shape
@@ -30,22 +104,6 @@ def get_mean_and_std_of_latent_code_ae(data):
 	print("data-min, data-max")
 	print(min_data, max_data)
 
-
-	# nn_diff = 0
-	# for i in range(len(data)):
-	# 	nn_dist = np.inf 
-	# 	for j in range(len(data)):
-	# 		if i == j:
-	# 			continue
-	# 		dist = data[j] - data[i]
-	# 		dist *= dist
-	# 		dist = dist.sum()
-	# 		dist = np.sqrt(dist)
-	# 		nn_dist = min(nn_dist, dist)
-	# 	nn_diff +=  nn_dist
-
-	# print("mean nn distances")
-	# print(nn_diff/ len(data))
 
 
 	avg_dist = 0
@@ -125,18 +183,23 @@ def get_average_distance(code):
 
 def get_nn_distance(code):
 	num_samples = len(code)
-	total_dist = 0 
+	average_nn_dist = 0 
+	nearest_list = list()
 	for i in range(num_samples):
 		min_dist = np.inf
+		nn_index = 0
 		for j in range(num_samples):
 			if i == j:
 				continue
 			dist = (code[i] - code[j]) * (code[i] - code[j])
 			dist = np.sqrt(dist.sum())
-			min_dist = min(min_dist, dist)
-		total_dist += min_dist
-	total_dist /= num_samples
-	return total_dist
+			if dist < min_dist:
+				min_dist = min(min_dist, dist)
+				nn_index = j
+		average_nn_dist += min_dist
+		nearest_list.append(nn_index)
+	average_nn_dist /= num_samples
+	return nearest_list, average_nn_dist
 
 def get_nn(code, gen_code):
 	# pdb.set_trace()
@@ -162,28 +225,28 @@ def get_nn(code, gen_code):
 	return code_to_gen, gen_to_code,  dist_list, np.mean(dist_list)
 
 
-if __name__=="__main__":
+# if __name__=="__main__":
 
-	file_hidden_code = sys.argv[1] # path to hidden code file
-	file_hidden_code_gen = sys.argv[2] # path to geenrated hidden code file
+# 	file_hidden_code = sys.argv[1] # path to hidden code file
+# 	file_hidden_code_gen = sys.argv[2] # path to geenrated hidden code file
 
 
-	data = np.load(file_hidden_code)
-	data_gen = np.load(file_hidden_code_gen)
+# 	data = np.load(file_hidden_code)
+# 	data_gen = np.load(file_hidden_code_gen)
 
-	mean, std, min_data, max_data = get_mean_and_std_of_latent_code_ae(data)
+# 	mean, std, min_data, max_data = get_mean_and_std_of_latent_code_ae(data)
 
-	# c1, c2 = get_codes_with_max_diff(data)
+# 	# c1, c2 = get_codes_with_max_diff(data)
 
-	d, distances = get_nn(data, data_gen)
+# 	d, distances = get_nn(data, data_gen)
 
-	# for k, v in d.items():
-	# 	print(k)
-	# 	print(v)
-	# print(len(d))
+# 	# for k, v in d.items():
+# 	# 	print(k)
+# 	# 	print(v)
+# 	# print(len(d))
 
-	print("mean of distance")
-	print(np.sqrt(np.array(distances)).mean())
+# 	print("mean of distance")
+# 	print(np.sqrt(np.array(distances)).mean())
 
 
 

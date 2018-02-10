@@ -23,10 +23,10 @@ import pdb
 top_out_dir = '../data/'                        # Use to write Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-def load(model_path, zrotate, num_points):
+def load(model_path, z_rotate, num_points):
 	model_dir = osp.dirname(model_path)
 	model_epoch = int(osp.basename(model_path).split('-')[1])
-	experiment_name = osp.basename(osp.dirname(model_path)).split('train_')[1] #'single_class_ae_plane_chamfer_zrotate'                         # Number of points per model.
+	experiment_name = osp.basename(osp.dirname(model_path)).split('train_')[1] #'single_class_ae_plane_chamfer_z_rotate'                         # Number of points per model.
 	bneck_size = 128                                # Bottleneck-AE size
 	ae_loss = 'chamfer'                             # Loss to optimize: 'emd' or 'chamfer'
 	class_name = "airplane"
@@ -46,7 +46,7 @@ def load(model_path, zrotate, num_points):
 	            learning_rate = train_params['learning_rate'],
 	            loss_display_step = train_params['loss_display_step'],
 	            saver_step = train_params['saver_step'],
-	            z_rotate = zrotate == 'True',
+	            z_rotate = z_rotate == 'True',
 	            train_dir = train_dir,
 	            encoder = encoder,
 	            decoder = decoder,
@@ -59,6 +59,19 @@ def load(model_path, zrotate, num_points):
 	reset_tf_graph()
 	ae = PointNetAutoEncoder(conf.experiment_name, conf)
 	ae.restore_model(model_dir, model_epoch)
-	return ae
+	return ae, conf
 
-#ae = load('/home/yz6/code/latent_3d_points/data/train_single_class_ae_plane_chamfer_nonrotate_600p/models.ckpt-990', 'False', 600)
+def unpickle_pc_file(data_file): 
+	"""
+	data_file: input pickled file of PointCloud instance
+	"""
+	for x in unpickle_data(data_file):
+	    pc_data = x
+	return pc_data
+
+def get_feed_data(pc_data, conf):
+	data, _, _ = pc_data.full_epoch_data(shuffle=False)
+	feed = apply_augmentations(data, conf)
+	return feed
+
+

@@ -218,6 +218,7 @@ class PointCloudDataSet(object):
             self.shuffle_data()
 
     def shuffle_data(self, seed=None):
+
         if seed is not None:
             np.random.seed(seed)
         perm = np.arange(self.num_examples)
@@ -230,6 +231,9 @@ class PointCloudDataSet(object):
 
     def next_batch(self, batch_size, seed=None):
         '''Return the next batch_size examples from this data set.
+
+        no augementation
+
         '''
         start = self._index_in_epoch
         self._index_in_epoch += batch_size
@@ -256,6 +260,7 @@ class PointCloudDataSet(object):
                 return self.point_clouds[start:end], self.labels[start:end], self.noisy_point_clouds[start:end]
     def full_epoch_data(self, shuffle=True, seed=None):
         '''Returns a copy of the examples of the entire data set (i.e. an epoch's data), shuffled.
+        no augementation
         '''
         if shuffle and seed is not None:
             np.random.seed(seed)

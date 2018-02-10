@@ -13,7 +13,7 @@ hidden_code_file = sys.argv[4]  # hidden code file
 
 
 
-ae = load_ae(model_path, zrotate, num_points)
+ae, conf = load_ae(model_path, zrotate, num_points)
 
 hidden_z = np.load(hidden_code_file)
 hidden_x = ae.decode(hidden_z)

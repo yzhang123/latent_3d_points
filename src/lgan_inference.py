@@ -9,8 +9,6 @@ import sys, os
 import pdb
 import os.path as osp
 
-from load_ae_model import load as load_ae
-
 model_path = sys.argv[1] # model path
 save_file_path = osp.join(osp.dirname(model_path), 'hidden_generated.npy')
 g = torch.load(model_path, map_location=lambda storage, loc: storage)

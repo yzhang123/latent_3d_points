@@ -84,7 +84,7 @@ if __name__=='__main__':
     label_zero = Variable(torch.FloatTensor(batch_size, 1).fill_(0), requires_grad=False).cuda()
     label_one = Variable(torch.FloatTensor(batch_size, 1).fill_(1), requires_grad=False).cuda()
     
-        
+    f = open(osp.join(save_dir, 'log.txt'), 'a')
     for epoch in xrange(num_epochs):
         data_loader = DataLoader(data_file, batch_size=batch_size, shuffle=True, repeat=False).iterator()
         batch_num = 0
@@ -131,7 +131,7 @@ if __name__=='__main__':
                 
                 if batch_num % 10 == 0:
                     print('epoch: {0}, iter: {1}, d_loss: {2}, g_loss: {3}'.format(epoch, batch_num, d_loss, g_loss))
-                
+                    f.write('epoch: {0}, iter: {1}, d_loss: {2}, g_loss: {3} \n'.format(epoch, batch_num, d_loss, g_loss))
                 batch_num += 1
             except:
                 break

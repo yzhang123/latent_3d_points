@@ -8,9 +8,9 @@ import pdb
 from latent_3d_points.src.load_ae_model import load as load_ae
 
 model_path = sys.argv[1] # model path of ae model
-num_points = int(sys.argv[3])   # number of points per object
-hidden_code_file = sys.argv[4]  # hidden code file
-
+num_points = int(sys.argv[2])   # number of points per object
+hidden_code_file = sys.argv[3]  # hidden code file
+zrotate = sys.argv[4]
 
 
 ae, conf = load_ae(model_path, zrotate, num_points)
@@ -18,7 +18,9 @@ ae, conf = load_ae(model_path, zrotate, num_points)
 hidden_z = np.load(hidden_code_file)
 hidden_x = ae.decode(hidden_z)
 
-
+save_dir = '../data/tmp'
+for i in range(len(hidden_x)):
+	np.savetxt(os.path.join(save_dir, "0_{0}".format(i)), hidden_x[i], delimiter=",")
 
 # # INTERPOLATE 
 

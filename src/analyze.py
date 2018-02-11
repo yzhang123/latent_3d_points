@@ -201,7 +201,7 @@ def get_nn_distance(code):
 	average_nn_dist /= num_samples
 	return nearest_list, average_nn_dist
 
-def get_nn(code, gen_code):
+def get_nn_between_codes(code, gen_code):
 	# pdb.set_trace()
 	dist_list = list()
 	code_to_gen = defaultdict(list)

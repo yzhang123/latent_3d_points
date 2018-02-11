@@ -5,6 +5,8 @@ import numpy as np
 from data_loader import DataLoader
 import torch.optim as optim
 import os
+import os.path as ospq
+
 import pdb
 
 
@@ -62,6 +64,7 @@ if __name__=='__main__':
     batch_size=50
     x_dim=128
     z_dim=128
+    critic_steps = 1
     
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -76,62 +79,69 @@ if __name__=='__main__':
     optimD = optim.Adam([{'params': d.parameters()}], lr=0.0001, betas=(0.5, 0.999))
     optimG = optim.Adam([{'params': g.parameters()}], lr=0.0001, betas=(0.5, 0.999))
 
-    criterionD = nn.BCEWithLogitsLoss().cuda()
-    criterionG = nn.BCEWithLogitsLoss().cuda()
     
     real = Variable(torch.FloatTensor(batch_size, x_dim), requires_grad=False).cuda()
     noise = Variable(torch.FloatTensor(batch_size, z_dim), requires_grad=False).cuda()
     label_zero = Variable(torch.FloatTensor(batch_size, 1).fill_(0), requires_grad=False).cuda()
     label_one = Variable(torch.FloatTensor(batch_size, 1).fill_(1), requires_grad=False).cuda()
     
-        
+    one = torch.cuda.FloatTensor([1])
+    mone = one * -1
+    
+    f = open(osp.join(save_dir, 'log.txt'), 'a')    
     for epoch in xrange(num_epochs):
         data_loader = DataLoader(data_file, batch_size=batch_size, shuffle=True, repeat=False).iterator()
         batch_num = 0
         while True:
             try:
-
-                for p in D.parameters():
-                    p.requires_grad = True
+                D_loss = np.zeros(critic_steps)
                 # train D
-                for _ in xrange(1):
-    #                 pdb.set_trace()
+                for p in d.parameters():
+                    p.requires_grad = True
+                for _ in xrange(critic_steps):
+                    # D_loss = np.zeros(self.critic_steps)
+                    # for p in self.D.parameters():
+                    #     p.data.clamp_(-1 * weight_clip, weight_clip)
+
+
                     optimD.zero_grad()
                     batch = data_loader.next()
                     x = torch.from_numpy(batch)
                     real.data.copy_(x)
-                    logit_real = d(real)
-                    loss_real = criterionD(logit_real, label_one)
-                    #loss_real.backward()
+                    errD_real = d(real).mean(0)
 
+                    # fake part
                     generate_noise(noise)
-                    x_fake = g(noise)
-                    logit_fake = d(x_fake.detach())
-                    loss_fake = criterionD(logit_fake, label_zero)
-                    #loss_fake.backward()
+                    fake_x = g(noise)
+                    errD_fake = d(fake_x.detach()).mean(0)
 
-                    loss = loss_real + loss_fake
-                    loss.backward()
+                    errD = errD_fake - errD_real
+                    errD.backward()
+                    D_loss[j] = (errD_real - errD_fake).data.cpu().numpy()
                     optimD.step()
 
                 
+   
                 # Train G
-                for p in D.parameters():
+
+                for p in d.parameters():
                     p.requires_grad = False
                 optimG.zero_grad()
+
                 generate_noise(noise)
                 x_fake = g(noise)
-                logit_fake = d(x_fake)
-                loss_fake = criterionG(logit_fake, label_one)
-                loss_fake.backward()
+                errG = d(x_fake).mean(0)
+                errG.backward(mone)
                 optimG.step()
                 
-                d_loss = loss.data.cpu().numpy().mean()
-                g_loss = loss_fake.data.cpu().numpy().mean()
+                d_loss = D_loss.mean()
+                d_loss_real = np.asscalar(errD_real.data.cpu().numpy())
+                d_loss_fake = np.asscalar(errD_fake.data.cpu().numpy())
+                g_loss = np.asscalar(errG.data.cpu().numpy())
                 
-                if batch_num % 10 == 0:
-                    print('epoch: {0}, iter: {1}, d_loss: {2}, g_loss: {3}'.format(epoch, batch_num, d_loss, g_loss))
-                
+                if batch_num % 1 == 0:
+                    print('epoch: {0}, iter: {1}, d_loss: {2}, g_loss: {3}, d_loss_real: {4}, d_loss_fake: {5}'.format(epoch, batch_num, d_loss, g_loss, d_loss_real, d_loss_fake))
+                    f.write('epoch: {0}, iter: {1}, d_loss: {2}, g_loss: {3}, d_loss_real: {4}, d_loss_fake: {5} \n'.format(epoch, batch_num, d_loss, g_loss, d_loss_real, d_loss_fake))
                 batch_num += 1
             except:
                 break

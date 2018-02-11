@@ -5,8 +5,6 @@ from latent_3d_points.src.point_net_ae import PointNetAutoEncoder
 from latent_3d_points.src.in_out import snc_category_to_synth_id, create_dir, PointCloudDataSet, \
                                         load_all_point_clouds_under_folder, unpickle_data
 from latent_3d_points.src.tf_utils import reset_tf_graph
-from analyze import get_nn, get_nn_distance, get_average_distance, get_nn_chamfer, get_nn_chamfer_own, get_avg_chamfer_own, get_chamfer_permut
-
 from latent_3d_points.src.general_utils import apply_augmentations
 from latent_3d_points.external.structural_losses.tf_nndistance import nn_distance
 
@@ -74,4 +72,34 @@ def get_feed_data(pc_data, conf):
 	feed = apply_augmentations(data, conf)
 	return feed
 
+def transform(pc_data, conf, batch_size):
+	n_examples = pc_data.num_examples
+	n_batch = n_examples/batch_size
+	result = list()
+	for _ in xrange(n_batch):
+	    feed_pc, feed_model_names, _ = pc_data.next_batch(batch_size)
+	    if z_rotate == 'True':
+	        feed_pc = apply_augmentations(feed_pc, conf)
+	    hidden = ae.transform(feed_pc)
+	    result.append(hidden)
 
+	result = np.concatenate(result, axis=0)
+	return result
+
+
+
+
+
+def reconstruct(pc_data, conf, batch_size):
+	n_examples = pc_data.num_examples
+	n_batch = n_examples/batch_size
+	result = list()
+	for _ in xrange(n_batch):
+	    feed_pc, feed_model_names, _ = pc_data.next_batch(batch_size)
+	    if z_rotate == 'True':
+	        feed_pc = apply_augmentations(feed_pc, conf)
+	    rec, _ = ae.reconstruct(feed_pc)
+	    result.append(rec)
+
+	result = np.concatenate(result, axis=0)
+	return result

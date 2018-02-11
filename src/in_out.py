@@ -296,3 +296,5 @@ class PointCloudDataSet(object):
         self.num_examples = self.point_clouds.shape[0]
 
         return self
+
+        

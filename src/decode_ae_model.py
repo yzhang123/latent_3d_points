@@ -19,7 +19,7 @@ hidden_z = np.load(hidden_code_file)
 hidden_x = ae.decode(hidden_z)
 
 save_dir = '../data/tmp'
-for i in range(len(hidden_x)):
+for i in range(min(len(hidden_x), 100)):
 	np.savetxt(os.path.join(save_dir, "0_{0}".format(i)), hidden_x[i], delimiter=",")
 
 # # INTERPOLATE 

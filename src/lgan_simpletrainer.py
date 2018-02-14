@@ -5,6 +5,7 @@ import numpy as np
 from data_loader import DataLoader
 import torch.optim as optim
 import os
+import os.path as osp
 import pdb
 
 
@@ -28,7 +29,7 @@ class G(nn.Module):
         self.main = nn.Sequential(
             nn.Linear(in_dim, 128), 
             nn.ELU(inplace=True),
-            nn.Linear(128, 128)
+            nn.Linear(128, 128),
         )
     def forward(self, x):
         output = self.main(x)
@@ -73,8 +74,8 @@ if __name__=='__main__':
         x.cuda()
         x.apply(weights_init)
        
-    optimD = optim.Adam([{'params': d.parameters()}], lr=0.0001, betas=(0.5, 0.999))
-    optimG = optim.Adam([{'params': g.parameters()}], lr=0.0001, betas=(0.5, 0.999))
+    optimD = optim.Adam([{'params': d.parameters()}], lr=0.00005, betas=(0.9, 0.999))
+    optimG = optim.Adam([{'params': g.parameters()}], lr=0.0001, betas=(0.9, 0.999))
 
     criterionD = nn.BCEWithLogitsLoss().cuda()
     criterionG = nn.BCEWithLogitsLoss().cuda()
@@ -90,8 +91,8 @@ if __name__=='__main__':
         batch_num = 0
         while True:
             try:
-
-                for p in D.parameters():
+                # pdb.set_trace()
+                for p in d.parameters():
                     p.requires_grad = True
                 # train D
                 for _ in xrange(1):
@@ -116,20 +117,22 @@ if __name__=='__main__':
 
                 
                 # Train G
-                for p in D.parameters():
+
+                for p in d.parameters():
                     p.requires_grad = False
-                optimG.zero_grad()
-                generate_noise(noise)
-                x_fake = g(noise)
-                logit_fake = d(x_fake)
-                loss_fake = criterionG(logit_fake, label_one)
-                loss_fake.backward()
-                optimG.step()
+                for _ in xrange(1):
+                    optimG.zero_grad()
+                    generate_noise(noise)
+                    x_fake = g(noise)
+                    logit_fake = d(x_fake)
+                    loss_fake = criterionG(logit_fake, label_one)
+                    loss_fake.backward()
+                    optimG.step()
                 
                 d_loss = loss.data.cpu().numpy().mean()
                 g_loss = loss_fake.data.cpu().numpy().mean()
                 
-                if batch_num % 10 == 0:
+                if batch_num % 1 == 0:
                     print('epoch: {0}, iter: {1}, d_loss: {2}, g_loss: {3}'.format(epoch, batch_num, d_loss, g_loss))
                     f.write('epoch: {0}, iter: {1}, d_loss: {2}, g_loss: {3} \n'.format(epoch, batch_num, d_loss, g_loss))
                 batch_num += 1

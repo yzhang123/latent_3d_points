@@ -5,7 +5,7 @@ import numpy as np
 from data_loader import DataLoader
 import torch.optim as optim
 import os
-import os.path as ospq
+import os.path as osp
 
 import pdb
 
@@ -88,6 +88,7 @@ if __name__=='__main__':
     one = torch.cuda.FloatTensor([1])
     mone = one * -1
     
+    # pdb.set_trace()
     f = open(osp.join(save_dir, 'log.txt'), 'a')    
     for epoch in xrange(num_epochs):
         data_loader = DataLoader(data_file, batch_size=batch_size, shuffle=True, repeat=False).iterator()
@@ -98,7 +99,7 @@ if __name__=='__main__':
                 # train D
                 for p in d.parameters():
                     p.requires_grad = True
-                for _ in xrange(critic_steps):
+                for j in xrange(critic_steps):
                     # D_loss = np.zeros(self.critic_steps)
                     # for p in self.D.parameters():
                     #     p.data.clamp_(-1 * weight_clip, weight_clip)

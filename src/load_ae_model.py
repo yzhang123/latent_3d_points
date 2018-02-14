@@ -21,7 +21,7 @@ import pdb
 top_out_dir = '../data/'                        # Use to write Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-def load(model_path, z_rotate, num_points):
+def load(model_path, z_rotate, num_points, point_dimension=3):
 	model_dir = osp.dirname(model_path)
 	model_epoch = int(osp.basename(model_path).split('-')[1])
 	experiment_name = osp.basename(osp.dirname(model_path)).split('train_')[1] #'single_class_ae_plane_chamfer_z_rotate'                         # Number of points per model.
@@ -33,10 +33,10 @@ def load(model_path, z_rotate, num_points):
 
 	train_dir = create_dir(osp.join(top_out_dir, experiment_name))
 	train_params = default_train_params()
-	encoder, decoder, enc_args, dec_args = mlp_architecture_ala_iclr_18(num_points, bneck_size)
+	encoder, decoder, enc_args, dec_args = mlp_architecture_ala_iclr_18(num_points, bneck_size, point_dimension=point_dimension)
 
 
-	conf = Conf(n_input = [num_points, 3],
+	conf = Conf(n_input = [num_points, point_dimension],
 	            loss = ae_loss,
 	            training_epochs = train_params['training_epochs'],
 	            batch_size = train_params['batch_size'],

@@ -8,7 +8,7 @@ import numpy as np
 from . encoders_decoders import encoder_with_convs_and_symmetry, decoder_with_fc_only
 
 
-def mlp_architecture_ala_iclr_18(n_pc_points, bneck_size, bneck_post_mlp=False):
+def mlp_architecture_ala_iclr_18(n_pc_points, bneck_size, point_dimension=3, bneck_post_mlp=False):
     ''' Single class experiments.
     '''
  
@@ -17,7 +17,7 @@ def mlp_architecture_ala_iclr_18(n_pc_points, bneck_size, bneck_post_mlp=False):
     encoder = encoder_with_convs_and_symmetry
     decoder = decoder_with_fc_only
 
-    n_input = [n_pc_points, 3]
+    n_input = [n_pc_points, point_dimension]
 
     encoder_args = {'n_filters': [64, 128, 128, 256, bneck_size],
                     'filter_sizes': [1],

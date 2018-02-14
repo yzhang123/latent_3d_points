@@ -91,7 +91,7 @@ if __name__=='__main__':
         while True:
             try:
 
-                for p in D.parameters():
+                for p in d.parameters():
                     p.requires_grad = True
                 # train D
                 for _ in xrange(1):
@@ -116,7 +116,7 @@ if __name__=='__main__':
 
                 
                 # Train G
-                for p in D.parameters():
+                for p in d.parameters():
                     p.requires_grad = False
                 optimG.zero_grad()
                 generate_noise(noise)

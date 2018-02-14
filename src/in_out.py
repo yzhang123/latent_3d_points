@@ -33,7 +33,7 @@ snc_synth_id_to_category = {
     '04554684': 'washer',    '02858304': 'boat',       '02992529': 'cellphone'
 }
 
-def save_csv(save_dir, tensor, label_ids, max_to_save):
+def save_csv(save_dir, tensor, label_ids, max_to_save=0):
     create_dir(save_dir)
     num_to_save = min(max_to_save, len(tensor))
     file_idx = 0
@@ -248,7 +248,7 @@ class PointCloudDataSet(object):
         if self.noisy_point_clouds is None:
             # pdb.set_trace()
             if not self.fixed_points:
-                filter_points = np.random.permutation(self.n_points)[:self.num_points]
+                filter_points = (np.random.permutation)(self.n_points)[:self.num_points]
                 return self.point_clouds[start:end, filter_points], self.labels[start:end], None
             else:
                 return self.point_clouds[start:end], self.labels[start:end], None

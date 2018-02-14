@@ -79,7 +79,9 @@ class PointNetAutoEncoder(AutoEncoder):
         c = self.configuration
 
         if c.loss == 'chamfer':
-            cost_p1_p2, _, cost_p2_p1, _ = nn_distance(self.x_reconstr, self.gt)
+            x_reconstr = tf.pad(self.x_reconstr, [[0, 0], [0, 0], [0,1]])
+            gt = tf.pad(self.gt, [[0, 0], [0, 0], [0,1]])
+            cost_p1_p2, _, cost_p2_p1, _ = nn_distance(x_reconstr, gt)
             self.loss = tf.reduce_mean(cost_p1_p2) + tf.reduce_mean(cost_p2_p1)
         elif c.loss == 'emd':
             match = approx_match(self.x_reconstr, self.gt)
@@ -109,7 +111,7 @@ class PointNetAutoEncoder(AutoEncoder):
     def _single_epoch_train(self, train_data, configuration, only_fw=False):
         n_examples = train_data.num_examples
         epoch_loss = 0.
-        batch_size = configuration.batch_size
+        batch_size = min(configuration.batch_size, n_examples)
         n_batches = int(n_examples / batch_size)
         start_time = time.time()
 

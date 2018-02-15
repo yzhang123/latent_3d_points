@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+import torch.autograd as autograd
 import numpy as np
 from data_loader import DataLoader
 import torch.optim as optim
@@ -51,7 +52,25 @@ def weights_init(m):
 
 def generate_noise(var):
     var.data.normal_(mean=0, std=0.2)
-    
+
+def calc_gradient_penalty(real_data, fake_data, batch_size, d):
+        #pdb.set_trace()
+        alpha = torch.rand(batch_size, 1)
+        alpha = alpha.expand(real_data.size())
+        alpha = alpha.cuda()
+
+        interpolates = alpha * real_data + ((1 - alpha) * fake_data)
+        interpolates = interpolates.cuda()
+        interpolates = autograd.Variable(interpolates, requires_grad=True)
+
+        disc_interpolates = d(interpolates)
+
+        gradients = autograd.grad(outputs=disc_interpolates, inputs=interpolates,
+                              grad_outputs=torch.ones(disc_interpolates.size()).cuda(),
+                              create_graph=True, retain_graph=True, only_inputs=True)[0]
+
+        gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * 0.01
+        return gradient_penalty
     
 if __name__=='__main__':
     import sys
@@ -64,7 +83,9 @@ if __name__=='__main__':
     batch_size=50
     x_dim=128
     z_dim=128
-    critic_steps = 1
+    critic_steps = 5
+    lambda_grad_penalty = 0.1
+    weight_clip = 1
     
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -100,9 +121,9 @@ if __name__=='__main__':
                 for p in d.parameters():
                     p.requires_grad = True
                 for j in xrange(critic_steps):
-                    # D_loss = np.zeros(self.critic_steps)
-                    # for p in self.D.parameters():
-                    #     p.data.clamp_(-1 * weight_clip, weight_clip)
+                    D_loss = np.zeros(critic_steps)
+                    for p in d.parameters():
+                        p.data.clamp_(-1 * weight_clip, weight_clip)
 
 
                     optimD.zero_grad()
@@ -118,7 +139,18 @@ if __name__=='__main__':
 
                     errD = errD_fake - errD_real
                     errD.backward()
-                    D_loss[j] = (errD_real - errD_fake).data.cpu().numpy()
+
+                    # train with gradient penalty
+                    # gradient_penalty = calc_gradient_penalty(real.data, fake_x.data, batch_size=batch_size, d=d)
+                    # weighted_grad_penalty = lambda_grad_penalty * gradient_penalty
+                    
+                    # # weighted_grad_penalty.backward()
+
+                    # total_errD = errD + weighted_grad_penalty
+                    # D_loss[j] = total_errD.data.cpu().numpy()
+
+
+                    D_loss[j] = errD.data.cpu().numpy()
                     optimD.step()
 
                 
@@ -131,8 +163,8 @@ if __name__=='__main__':
 
                 generate_noise(noise)
                 x_fake = g(noise)
-                errG = d(x_fake).mean(0)
-                errG.backward(mone)
+                errG = -d(x_fake).mean(0)
+                errG.backward()
                 optimG.step()
                 
                 d_loss = D_loss.mean()

@@ -12,10 +12,21 @@ import os.path as osp
 model_path = sys.argv[1] # model path
 save_file_path = osp.join(osp.dirname(model_path), 'hidden_generated.npy')
 g = torch.load(model_path, map_location=lambda storage, loc: storage)
-batch_size=1000
+num_objects = 100000
+batch_size=100
+
+
+
+num_iters = num_objects/batch_size
+
+fake_list = list()
 noise=Variable(torch.FloatTensor(batch_size, 128))
-generate_noise(noise)
-fake_z = g(noise).data.numpy()
+
+for _ in range(num_iters):
+	generate_noise(noise)
+	fake_z = g(noise).data.numpy()
+	fake_list.append(fake_z)
+fake_z = np.concatenate(fake_list, axis=0)
 np.save(save_file_path, fake_z)
 
 

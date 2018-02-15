@@ -6,7 +6,17 @@ from data_loader import DataLoader
 import torch.optim as optim
 import os
 import pdb
+import sys
+import random
+import argparse
 
+    
+# seed = sys.argv[3] # seed for randomization
+
+# np.random.seed(seed=seed)
+# random.seed(seed)
+# torch.manual_seed(seed)
+# torch.cuda.manual_seed_all(seed)
 
 class D(nn.Module):
     def __init__(self, in_dim=128, out_dim=1):
@@ -52,13 +62,12 @@ def generate_noise(var):
     
     
 if __name__=='__main__':
-    import sys
-    
+
+
+
     data_file = sys.argv[1] #'../data/plane_hidden.npy'
     save_dir = sys.argv[2] #'../data/lgan_plane' will create this
-
-
-    num_epochs=1000
+    num_epochs=100 # 1000
     batch_size=50
     x_dim=128
     z_dim=128

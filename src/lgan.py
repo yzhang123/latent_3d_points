@@ -6,6 +6,7 @@ from data_loader import DataLoader
 import torch.optim as optim
 import os
 import pdb
+import os.path as osp
 
 
 class D(nn.Module):
@@ -53,11 +54,12 @@ def generate_noise(var):
     
 if __name__=='__main__':
     data_file = '../data/plane_hidden.npy'
+    data_file = '../data/single_class_ae_plane/hidden.npy'
     num_epochs=300
     batch_size=50
     x_dim=128
     z_dim=128
-    save_dir = '../data/lgan_plane'
+    save_dir = '../data/lgan_single_class_ae_plane'
     
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -76,7 +78,8 @@ if __name__=='__main__':
     
     real = Variable(torch.FloatTensor(batch_size, x_dim)).cuda()
     noise = Variable(torch.FloatTensor(batch_size, z_dim)).cuda()
-    label = Variable(torch.FloatTensor(batch_size, 1)).cuda()
+    label_zero = Variable(torch.FloatTensor(batch_size, 1).fill_(0), requires_grad=False).cuda()
+    label_one = Variable(torch.FloatTensor(batch_size, 1).fill_(1), requires_grad=False).cuda()
     
         
     for epoch in xrange(num_epochs):
@@ -90,15 +93,13 @@ if __name__=='__main__':
                 x = torch.from_numpy(batch)
                 real.data.copy_(x)
                 logit_real = d(real)
-                label.data.fill_(1)
-                loss_real = criterionD(logit_real, label)
+                loss_real = criterionD(logit_real, label_one)
                 loss_real.backward()
 
                 generate_noise(noise)
                 x_fake = g(noise)
                 logit_fake = d(x_fake.detach())
-                label.data.fill_(0)
-                loss_fake = criterionD(logit_fake, label)
+                loss_fake = criterionD(logit_fake, label_zero)
                 loss_fake.backward()
 
                 loss = loss_real + loss_fake
@@ -111,8 +112,7 @@ if __name__=='__main__':
             generate_noise(noise)
             x_fake = g(noise)
             logit_fake = d(x_fake)
-            label.data.fill_(1)
-            loss_fake = criterionG(logit_fake, label)
+            loss_fake = criterionG(logit_fake, label_one)
             loss_fake.backward()
             optimG.step()
             
@@ -124,6 +124,17 @@ if __name__=='__main__':
             
             
         torch.save(g, save_dir + '/G_network_{0}.pth'.format(epoch))
+
+
+    fake_z = list()
+    for i in xrange(1000):
+        noise=Variable(torch.cuda.FloatTensor(batch_size, 128))
+        generate_noise(noise)
+        fake_x = g(noise).data.cpu().numpy()
+        fake_z.append(fake_x)
+
+    fake_z = np.concatenate(fake_z, axis=0)
+    np.save(osp.join(save_dir, 'hidden.npy'), fake_z)
             
             
             

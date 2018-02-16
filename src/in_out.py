@@ -116,6 +116,31 @@ def load_all_point_clouds_under_folder(top_dir, n_threads=20, file_ending='.ply'
     return PointCloudDataSet(pclouds, labels=syn_ids + '_' + model_ids, init_shuffle=False)
 
 
+
+def load_all_point_clouds_under_folder_split(top_dir, n_threads=20, file_ending='.ply', verbose=False):
+    file_names = [f for f in files_in_subdirs(top_dir, file_ending)]
+    pclouds, model_ids, syn_ids = load_point_clouds_from_filenames(file_names, n_threads, loader=pc_loader, verbose=verbose)
+    
+    train_fraction=0.85
+    test_fraction=0.05
+    val_fraction=0.1
+    num_examples = len(file_names)
+    num_train = int(num_examples * train_fraction)
+    num_test = int(num_examples * test_fraction)
+    num_val = num_examples  - num_train - num_test
+
+
+    perm = np.random.permutation(num_examples)
+    filter_train = perm[:num_train]
+    filter_test = perm[num_train:num_train+num_test]
+    filter_val = perm[-num_val:]
+    train_pc = PointCloudDataSet(pclouds[filter_train], labels=syn_ids[filter_train] + '_' + model_ids[filter_train], init_shuffle=False)
+    test_pc = PointCloudDataSet(pclouds[filter_test], labels=syn_ids[filter_test] + '_' + model_ids[filter_test], init_shuffle=False)
+    val_pc = PointCloudDataSet(pclouds[filter_val], labels=syn_ids[filter_val] + '_' + model_ids[filter_val], init_shuffle=False)
+
+    return train_pc, test_pc, val_pc
+
+
 def load_point_clouds_from_filenames(file_names, n_threads, loader, verbose=False):
     pc = loader(file_names[0])[0]
     pclouds = np.empty([len(file_names), pc.shape[0], pc.shape[1]], dtype=np.float32)

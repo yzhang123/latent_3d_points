@@ -8,12 +8,12 @@ from latent_3d_points.src.in_out import snc_category_to_synth_id, create_dir, Po
                                         load_all_point_clouds_under_folder_split
 
 from latent_3d_points.src.tf_utils import reset_tf_graph
-
+from latent_3d_points.src.in_out import pickle_data
 
 top_out_dir = '../data/'                        # Use to write Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae_chair_chamfer2'
+experiment_name = 'single_class_ae_chair_chamfer3'
 n_pc_points = 2048                              # Number of points per model.
 bneck_size = 128                                # Bottleneck-AE size
 ae_loss = 'chamfer'                             # Loss to optimize: 'emd' or 'chamfer'
@@ -21,10 +21,15 @@ class_name = 'chair'
 
 syn_id = snc_category_to_synth_id()[class_name]
 class_dir = osp.join(top_in_dir , syn_id)
-train_pc_data, test_pc_data, val_pc_data = load_all_point_clouds_under_folder_split(class_dir, n_threads=2, file_ending='.ply', verbose=True)
+train_pc_data, test_pc_data, val_pc_data = load_all_point_clouds_under_folder_split(class_dir, n_threads=1, file_ending='.ply', verbose=True)
 
 
 train_dir = create_dir(osp.join(top_out_dir, experiment_name))
+
+pickle_data(osp.join(train_dir, 'train_pc.pkl'), train_pc_data)
+pickle_data(osp.join(train_dir, 'test_pc.pkl'), test_pc_data)
+pickle_data(osp.join(train_dir, 'val_pc.pkl'), val_pc_data)
+
 train_params = default_train_params()
 encoder, decoder, enc_args, dec_args = mlp_architecture_ala_iclr_18(n_pc_points, bneck_size)
 

@@ -21,22 +21,13 @@ import numpy as np
 
 
 
-
-
-
-
-
-
-
-
-
 top_out_dir = '../data/'                        # Use to write Neural-Net check-points etc.
 experiment_name = sys.argv[1]
 n_pc_points = int(sys.argv[2]) #600  # Number of points per model.     
 ae_loss = sys.argv[3] #'chamfer'
 z_rotate = 'False'
 
-training_epochs = 3000
+training_epochs = 500
 train_num_examples, val_num_examples, test_num_examples = 5000, 300, 800
 bneck_size = 128                  # Bottleneck-AE size
 # point cloud instance

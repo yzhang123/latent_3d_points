@@ -121,9 +121,9 @@ def load_all_point_clouds_under_folder_split(top_dir, n_threads=20, file_ending=
     file_names = [f for f in files_in_subdirs(top_dir, file_ending)]
     pclouds, model_ids, syn_ids = load_point_clouds_from_filenames(file_names, n_threads, loader=pc_loader, verbose=verbose)
     
-    train_fraction=0.85
-    test_fraction=0.05
-    val_fraction=0.1
+    train_fraction=0.85 # as in paper
+    test_fraction=0.05 #
+    val_fraction=0.1 #
     num_examples = len(file_names)
     num_train = int(num_examples * train_fraction)
     num_test = int(num_examples * test_fraction)

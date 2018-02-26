@@ -13,7 +13,7 @@ from latent_3d_points.src.in_out import pickle_data
 top_out_dir = '../data/'                        # Use to write Neural-Net check-points etc.
 top_in_dir = '../data/shape_net_core_uniform_samples_2048/' # Top-dir of where point-clouds are stored.
 
-experiment_name = 'single_class_ae_chair_chamfer3'
+experiment_name = 'test_experiment'
 n_pc_points = 2048                              # Number of points per model.
 bneck_size = 128                                # Bottleneck-AE size
 ae_loss = 'chamfer'                             # Loss to optimize: 'emd' or 'chamfer'
@@ -59,6 +59,6 @@ ae = PointNetAutoEncoder(conf.experiment_name, conf)
 
 buf_size = 1 # flush each line
 fout = open(osp.join(conf.train_dir, 'train_stats.txt'), 'a', buf_size)
-fout.write('training on chairs, epochs=2000, bs=50, lr=0.0005, chamfer_loss, using 85/5/10 split\n')
+fout.write('training on chairs, epochs=2000, bs=50, lr=0.0005, emd_loss, using 85/5/10 split\n')
 train_stats = ae.train(train_pc_data, conf, log_file=fout, held_out_data=val_pc_data)
 fout.close()

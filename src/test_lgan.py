@@ -16,7 +16,7 @@ import os.path as osp
 import sys
 
 
-model_path = sys.argv[1]
+model_path = '/home/yz6/code/latent_3d_points/data/lgan_simplegan_ae_chair_chamfer/G_network_100.pth'
 
 save_dir = osp.dirname(model_path)
 g = torch.load(model_path)
@@ -33,4 +33,4 @@ fake_z = np.concatenate(fake_z, axis=0)
 np.save(osp.join(save_dir, 'hidden.npy'), fake_z)
         
         
-        
+

@@ -53,13 +53,12 @@ def generate_noise(var):
     
     
 if __name__=='__main__':
-    data_file = '../data/plane_hidden.npy'
-    data_file = '../data/single_class_ae_plane/hidden.npy'
+    data_file = '../data/single_class_ae_chair_chamfer/train_hidden.npy'
     num_epochs=300
     batch_size=50
     x_dim=128
     z_dim=128
-    save_dir = '../data/lgan_single_class_ae_plane'
+    save_dir = '../data/lgan_simplegan_ae_chair_chamfer'
     
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -126,15 +125,15 @@ if __name__=='__main__':
         torch.save(g, save_dir + '/G_network_{0}.pth'.format(epoch))
 
 
-    fake_z = list()
-    for i in xrange(1000):
-        noise=Variable(torch.cuda.FloatTensor(batch_size, 128))
-        generate_noise(noise)
-        fake_x = g(noise).data.cpu().numpy()
-        fake_z.append(fake_x)
+    # fake_z = list()
+    # for i in xrange(1000):
+    #     noise=Variable(torch.cuda.FloatTensor(batch_size, 128))
+    #     generate_noise(noise)
+    #     fake_x = g(noise).data.cpu().numpy()
+    #     fake_z.append(fake_x)
 
-    fake_z = np.concatenate(fake_z, axis=0)
-    np.save(osp.join(save_dir, 'hidden.npy'), fake_z)
+    # fake_z = np.concatenate(fake_z, axis=0)
+    # np.save(osp.join(save_dir, 'hidden.npy'), fake_z)
             
             
             

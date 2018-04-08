@@ -129,7 +129,6 @@ def load_all_point_clouds_under_folder_split(top_dir, n_threads=20, file_ending=
     num_test = int(num_examples * test_fraction)
     num_val = num_examples  - num_train - num_test
 
-
     perm = np.random.permutation(num_examples)
     filter_train = perm[:num_train]
     filter_test = perm[num_train:num_train+num_test]

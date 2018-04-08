@@ -23,7 +23,7 @@ syn_id = snc_category_to_synth_id()[class_name]
 class_dir = osp.join(top_in_dir , syn_id)
 train_pc_data, test_pc_data, val_pc_data = load_all_point_clouds_under_folder_split(class_dir, n_threads=1, file_ending='.ply', verbose=True)
 
-
+print("number of models %s %s %s" % (len(train_pc_data.point_clouds), len(test_pc_data.point_clouds), len(val_pc_data.point_clouds)))
 train_dir = create_dir(osp.join(top_out_dir, experiment_name))
 
 pickle_data(osp.join(train_dir, 'train_pc.pkl'), train_pc_data)
